@@ -2,27 +2,11 @@ describe("federation-server.js tests", function () {
   beforeEach(function () {
     this.server = new StellarSdk.FederationServer('https://acme.com:1337/federation', 'stellar.org');
     this.axiosMock = sinon.mock(axios);
-    StellarSdk.Config.setDefault();
   });
 
   afterEach(function () {
     this.axiosMock.verify();
     this.axiosMock.restore();
-  });
-
-  describe('FederationServer.constructor', function () {
-    it("throws error for insecure server", function () {
-      expect(() => new StellarSdk.FederationServer('http://acme.com:1337/federation', 'stellar.org')).to.throw(/Cannot connect to insecure federation server/);
-    });
-
-    it("allow insecure server when opts.allowHttp flag is set", function () {
-      expect(() => new StellarSdk.FederationServer('http://acme.com:1337/federation', 'stellar.org', {allowHttp: true})).to.not.throw();
-    });
-
-    it("allow insecure server when global Config.allowHttp flag is set", function () {
-      StellarSdk.Config.setAllowHttp(true);
-      expect(() => new StellarSdk.FederationServer('http://acme.com:1337/federation', 'stellar.org', {allowHttp: true})).to.not.throw();
-    });
   });
 
   describe('FederationServer.resolveAddress', function () {
@@ -115,7 +99,7 @@ describe("federation-server.js tests", function () {
   describe('FederationServer.createForDomain', function () {
     it("creates correct object", function (done) {
       this.axiosMock.expects('get')
-        .withArgs(sinon.match('https://acme.com/.well-known/stellar.toml'))
+        .withArgs(sinon.match('https://www.acme.com/.well-known/stellar.toml'))
         .returns(Promise.resolve({
           data: `
 #   The endpoint which clients should query to resolve stellar addresses
@@ -136,7 +120,7 @@ FEDERATION_SERVER="https://api.stellar.org/federation"
 
     it("fails when stellar.toml does not contain federation server info", function (done) {
       this.axiosMock.expects('get')
-        .withArgs(sinon.match('https://acme.com/.well-known/stellar.toml'))
+        .withArgs(sinon.match('https://www.acme.com/.well-known/stellar.toml'))
         .returns(Promise.resolve({
           data: ''
         }));
@@ -158,7 +142,7 @@ FEDERATION_SERVER="https://api.stellar.org/federation"
 
     it("succeeds for a valid Stellar address", function (done) {
       this.axiosMock.expects('get')
-        .withArgs(sinon.match('https://stellar.org/.well-known/stellar.toml'))
+        .withArgs(sinon.match('https://www.stellar.org/.well-known/stellar.toml'))
         .returns(Promise.resolve({
           data: `
 #   The endpoint which clients should query to resolve stellar addresses

@@ -19,24 +19,24 @@ In this example you must ensure that the destination account exists
 // 1. Secret key of a funded account to be the source account
 // 2. Public key of an existing account as a recipient
 //    These two keys can be created and funded by the friendbot at
-//    https://www.stellar.org/laboratory/ under the heading "Quick Start: Test Account"
+//    https://www.stellar.org/developers/ under the heading "Quick Start: Test Account"
 // 3. Access to JS Stellar SDK (https://github.com/stellar/js-stellar-sdk)
 //    either through Node.js or in the browser.
 
-// This code can be run in the browser at https://www.stellar.org/laboratory/
+// This code can be run in the browser at https://www.stellar.org/developers/
 // That site exposes a global StellarSdk object you can use.
 // To run this code in the Chrome, open the console tab in the DevTools.
 // The hotkey to open the DevTools console is Ctrl+Shift+J or (Cmd+Opt+J on Mac).
 
 // To use in node, do `npm install stellar-sdk` and uncomment the following line.
-// var StellarSdk = require('stellar-sdk');
+var StellarSdk = require('stellar-sdk');
 
 // The source account is the account we will be signing and sending from.
 var sourceSecretKey = 'SAKRB7EE6H23EF733WFU76RPIYOPEWVOMBBUXDQYQ3OF4NF6ZY6B6VLW';
 
 // Derive Keypair object and public key (that starts with a G) from the secret
-var sourceKeypair = StellarSdk.Keypair.fromSecret(sourceSecretKey);
-var sourcePublicKey = sourceKeypair.publicKey();
+var sourceKeypair = StellarSdk.Keypair.fromSeed(sourceSecretKey);
+var sourcePublicKey = sourceKeypair.accountId();
 
 var receiverPublicKey = 'GAIRISXKPLOWZBMFRPU5XRGUUX3VMA3ZEWKBM5MSNRU3CHV6P4PYZ74D';
 
@@ -47,7 +47,6 @@ var server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
 // Uncomment the following line to build transactions for the live network. Be
 // sure to also change the horizon hostname.
 // StellarSdk.Network.usePublicNetwork();
-StellarSdk.Network.useTestNetwork();
 
 // Transactions require a valid sequence number that is specific to this account.
 // We can fetch the current sequence number for the source account from Horizon.

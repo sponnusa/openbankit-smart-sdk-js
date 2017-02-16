@@ -1,6 +1,6 @@
-import {CallBuilder} from "./call_builder";
+import {TimeFilterCallBuilder} from "./time_filter_call_builder";
 
-export class TransactionCallBuilder extends CallBuilder {
+export class TransactionCallBuilder extends TimeFilterCallBuilder {
     /**
      * Creates a new {@link TransactionCallBuilder} pointed to server defined by serverUrl.
      *
@@ -40,14 +40,11 @@ export class TransactionCallBuilder extends CallBuilder {
     /**
      * This endpoint represents all transactions in a given ledger.
      * @see [Transactions for Ledger](https://www.stellar.org/developers/horizon/reference/transactions-for-ledger.html)
-     * @param {number|string} sequence Ledger sequence
+     * @param {number} ledgerId Ledger ID
      * @returns {TransactionCallBuilder}
      */
-    forLedger(sequence) {
-        if (typeof sequence == 'number') {
-            sequence = sequence.toString();
-        }
-        this.filter.push(['ledgers', sequence, 'transactions']);
+    forLedger(ledgerId) {
+        this.filter.push(['ledgers', ledgerId, 'transactions']);
         return this;
     }
 }

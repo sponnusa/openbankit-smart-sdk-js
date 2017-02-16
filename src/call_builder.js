@@ -2,11 +2,13 @@ import {NotFoundError, NetworkError, BadRequestError} from "./errors";
 import forEach from 'lodash/forEach';
 
 let URI = require("urijs");
-let URITemplate = require("urijs/src/URITemplate");
+let URITemplate = require("urijs").URITemplate;
 
 let axios = require("axios");
 var EventSource = (typeof window === 'undefined') ? require('eventsource') : window.EventSource;
 let toBluebird = require("bluebird").resolve;
+
+var response_interval = 10;
 
 /**
  * Creates a new {@link CallBuilder} pointed to server defined by serverUrl.
@@ -27,10 +29,10 @@ export class CallBuilder {
   checkFilter() {
     if (this.filter.length >= 2) {
       throw new BadRequestError("Too many filters specified", this.filter);
-    } 
+    }
     if (this.filter.length === 1) {
       this.url.segment(this.filter[0]);
-    }        
+    }
   }
 
   /**
@@ -45,70 +47,71 @@ export class CallBuilder {
   }
 
   /**
-   * Creates an EventSource that listens for incoming messages from the server. To stop listening for new
-   * events call the function returned by this method.
+   * Creates an EventSource that listens for incoming messages from the server.
    * @see [Horizon Response Format](https://www.stellar.org/developers/horizon/learn/responses.html)
    * @see [MDN EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource)
    * @param {object} [options] EventSource options.
    * @param {function} [options.onmessage] Callback function to handle incoming messages.
    * @param {function} [options.onerror] Callback function to handle errors.
-   * @returns {function} Close function. Run to close the connection and stop listening for new events.
+   * @returns {EventSource}
    */
   stream(options) {
+    var context = this;
+
     this.checkFilter();
 
-    // EventSource object
-    let es;
-    // timeout is the id of the timeout to be triggered if there were no new messages
-    // in the last 15 seconds. The timeout is reset when a new message arrive.
-    // It prevents closing EventSource object in case of 504 errors as `readyState`
-    // property is not reliable.
-    let timeout;
-
-    var createTimeout = () => {
-      timeout = setTimeout(() => {
-        es.close();
-        es = createEventSource();
-      }, 15*1000);
-    };
-
-    var createEventSource = () => {
-      try {
-        es = new EventSource(this.url.toString());
-      } catch (err) {
-        if (options.onerror) {
-          options.onerror(err);
-          options.onerror('EventSource not supported');
-        }
-        return false;
+    // Workaround for streaming with NOW cursor after network breakdown
+    return new Promise(function (resolve, reject) {
+      if (!context.url.hasQuery('cursor', 'now')) {
+        resolve();
       }
 
-      createTimeout();
+      resolve(context._sendNormalRequest(context.url)
+        .then(r => {
+            var uri = new URI(r._links.self.href);
+            if (typeof uri.search(true).cursor != 'undefined') {
+              context.url.setQuery('cursor', uri.search(true).cursor);
+            }
+        }));
+      })
+      .then(() => {
+        context._eventStreamConnect(options);
+      });
+  }
 
-      es.onmessage = message => {
-        var result = message.data ? this._parseRecord(JSON.parse(message.data)) : message;
-        if (result.paging_token) {
-          this.url.setQuery("cursor", result.paging_token);
-        }
-        clearTimeout(timeout);
-        createTimeout();
-        options.onmessage(result);
-      };
+  _eventStreamConnect(options) {
+    var context = this;
 
-      es.onerror = error => {
-        if (options.onerror) {
-          options.onerror(error);
-        }
-      };
+    // Workaround to check dead connection or network issues among different eventsource implementations
+    var last_msg_ts = Math.floor(Date.now() / 1000);
+    var es = new EventSource(this.url.toString());
 
-      return es;
+    es.onmessage = (message) => {
+      last_msg_ts = Math.floor(Date.now() / 1000);
+      var result = message.data ? this._parseRecord(JSON.parse(message.data)) : message;
+
+      // Update the paging token for next request
+      if (typeof result == 'object' && result.paging_token) {
+        context.url.setQuery('cursor', result.paging_token);
+      }
+
+      options.onmessage(result);
     };
 
-    createEventSource();
-    return function close() {
-      clearTimeout(timeout);
-      es.close();
+    es.onerror = options.onerror;
+
+    // Check message intervals
+    var checkInterval = function () {
+      if (Math.floor(Date.now() / 1000) - last_msg_ts > response_interval) {
+        es.close();
+        context._eventStreamConnect(options);
+        return;
+      }
+
+      setTimeout(checkInterval, 1000);
     };
+
+    checkInterval();
   }
 
   /**
@@ -120,14 +123,15 @@ export class CallBuilder {
 
       if (link.templated) {
         let template = URITemplate(link.href);
-        uri = URI(template.expand(opts || {}));
+        let expOpts = opts === undefined || null === opts ? {} : opts;
+        uri = URI(template.expand(expOpts));
       } else {
         uri = URI(link.href);
       }
 
       return this._sendNormalRequest(uri).then(r => this._parseRecord(r));
     };
-  } 
+  }
 
   /**
    * Convert each link into a function on the response object.
@@ -137,16 +141,10 @@ export class CallBuilder {
     if (!json._links) {
       return json;
     }
-    forEach(json._links, (n, key) => {
-      // If the key with the link name already exists, create a copy
-      if (typeof json[key] != 'undefined') {
-        json[`${key}_attr`] = json[key];
-      }
-      json[key] = this._requestFnForLink(n);
-    });
+    forEach(json._links, (n, key) => {json[key] = this._requestFnForLink(n);});
     return json;
   }
-  
+
   _sendNormalRequest(url) {
     if (url.authority() === '') {
       url = url.authority(this.url.authority());
@@ -239,4 +237,6 @@ export class CallBuilder {
     this.url.addQuery("order", direction);
     return this;
   }
+
+
 }

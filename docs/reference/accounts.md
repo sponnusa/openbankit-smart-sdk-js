@@ -14,6 +14,7 @@ By default, `accounts()` provides access to the [`accounts_all`](https://stellar
 | --- | --- | --- | --- |
 | `accounts()` | [`accounts_all`](https://stellar.org/developers/horizon/reference/accounts-all.html) | | Access all accounts. |
 | `.accountId("accountId")` | [`accounts_single`](https://stellar.org/developers/horizon/reference/accounts-single.html) | `string` | Pass in the ID of the account you're interested in to reach its details.|
+| `.statisticsForAccount("accountId")` | `string` | Pass in the ID of the account you're interested in to reach its income/outcome statistics.|
 | `.limit(limit)` | | `integer` | Limits the number of returned resources to the given `limit`.|
 | `.cursor("token")` | | `string` | Return only resources after the given paging token. |
 | `.order({"asc" or "desc"})` | | `string` |  Order the returned collection in "asc" or "desc" order. |

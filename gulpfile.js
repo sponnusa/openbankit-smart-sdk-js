@@ -101,6 +101,20 @@ gulp.task('test:unit', ['build:node'], function() {
     }));
 });
 
+gulp.task('test:wallet', ['build:node'], function() {
+  return gulp.src(["test/test-helper.js", "test/wallet/hdw_test.js"])
+      .pipe(plugins.mocha({
+        reporter: ['spec']
+      }));
+});
+
+gulp.task('test:walletWorkflow', ['build:node'], function() {
+    return gulp.src(["test/test-helper.js", "test/wallet/hdwallet.js"])
+        .pipe(plugins.mocha({
+            reporter: ['spec']
+        }));
+});
+
 gulp.task('test:browser', ["build:browser"], function (done) {
   var Server = require('karma').Server;
   var server = new Server({ configFile: __dirname + '/karma.conf.js' });

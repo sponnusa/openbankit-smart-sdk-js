@@ -34,14 +34,11 @@ export class EffectCallBuilder extends CallBuilder {
      *
      * This endpoint represents all effects that occurred in the given ledger.
      * @see [Effects for Ledger](https://www.stellar.org/developers/horizon/reference/effects-for-ledger.html)
-     * @param {number|string} sequence Ledger sequence
+     * @param {number} ledgerId Ledger ID
      * @returns {EffectCallBuilder}
      */
-    forLedger(sequence) {
-        if (typeof sequence == 'number') {
-            sequence = sequence.toString();
-        }
-        this.filter.push(['ledgers', sequence, 'effects']);
+    forLedger(ledgerId) {
+        this.filter.push(['ledgers', ledgerId, 'effects']);
         return this;
     }
 
