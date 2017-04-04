@@ -9,6 +9,7 @@ var EventSource = (typeof window === 'undefined') ? require('eventsource') : win
 let toBluebird = require("bluebird").resolve;
 
 var response_interval = 10;
+var stopping = false;
 
 /**
  * Creates a new {@link CallBuilder} pointed to server defined by serverUrl.
@@ -85,6 +86,27 @@ export class CallBuilder {
     // Workaround to check dead connection or network issues among different eventsource implementations
     var last_msg_ts = Math.floor(Date.now() / 1000);
     var es = new EventSource(this.url.toString());
+    var stopStream;
+
+    // Check message intervals
+    var checkInterval = function () {
+      if (stopping) {
+        return;
+      }
+
+      if (Math.floor(Date.now() / 1000) - last_msg_ts > response_interval) {
+        es.close();
+        context._eventStreamConnect(options);
+        return;
+      }
+
+      setTimeout(checkInterval, 1000);
+    };
+
+    stopStream = function() {
+      stopping = true;
+      es.close();
+    };
 
     es.onmessage = (message) => {
       last_msg_ts = Math.floor(Date.now() / 1000);
@@ -99,16 +121,8 @@ export class CallBuilder {
     };
 
     es.onerror = options.onerror;
-
-    // Check message intervals
-    var checkInterval = function () {
-      if (Math.floor(Date.now() / 1000) - last_msg_ts > response_interval) {
-        es.close();
-        context._eventStreamConnect(options);
-        return;
-      }
-
-      setTimeout(checkInterval, 1000);
+    es.onopen = (e) => {
+      options.onopen(stopStream);
     };
 
     checkInterval();
