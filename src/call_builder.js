@@ -121,9 +121,12 @@ export class CallBuilder {
     };
 
     es.onerror = options.onerror;
-    es.onopen = (e) => {
-      options.onopen(stopStream);
-    };
+
+    if (typeof options.onopen === 'function') {
+      es.onopen = (e) => {
+        options.onopen(stopStream);
+      };
+    }
 
     checkInterval();
   }
