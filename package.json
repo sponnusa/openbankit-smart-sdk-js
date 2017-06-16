@@ -111,7 +111,7 @@
     "js-xdr": "^1.0.0",
     "jsdoc": "jsdoc3/jsdoc#master",
     "lodash": "^4.0.1",
-    "stellar-base": "git+https://github.com/atticlab/smart-base-js.git",
+    "stellar-base": "git+https://gitlab.com/openbankit/smart-base-js.git",
     "superagent": "^1.1.0",
     "toml": "^2.3.0",
     "urijs": "^1.16.0",
